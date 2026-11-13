@@ -1,0 +1,16 @@
+-r requirements.txt
+
+# Data visualization / notebooks
+matplotlib
+seaborn
+jupyter
+ipykernel
+
+# Extra model libraries used for training
+xgboost
+
+# Dashboard
+streamlit
+
+# Testing
+pytest

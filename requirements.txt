@@ -1,0 +1,19 @@
+# Runtime dependencies (installed on Render and in Docker).
+# Heavy / notebook / training-only packages live in requirements-dev.txt.
+
+numpy
+pandas
+
+# Pickled models were trained with scikit-learn 1.9.x - stay on this minor version
+scikit-learn>=1.9.0,<1.10
+joblib
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+httpx
+
+# Policy assistant (PDF reading + TF-IDF retrieval)
+pypdf

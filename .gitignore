@@ -1,0 +1,50 @@
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML experiment tracking
+mlruns/
+mlartifacts/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+
+# Test cache
+.pytest_cache/
+
+# IDE
+.idea/
+
+# Private datasets
+data/raw/*
+data/processed/*
+data/external/*
+
+# Local model artifacts
+artifacts/*.pkl
+artifacts/*.joblib
+artifacts/*.pt
+artifacts/*.pth
+
+# --- Models needed by the deployed API (small enough for GitHub) ---
+!artifacts/best_claim_frequency_model.pkl
+!artifacts/best_individual_claim_model_mae.pkl
+!artifacts/policy_segmentation_model.pkl

@@ -1,0 +1,186 @@
+{
+  "name": "MotorAI - Automated Claim Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "motorai-claim",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "1. Claim Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "motorai-claim"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://motorai-api.onrender.com/predict/triage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "2. Call MotorAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.recommended_action }}",
+                    "rightValue": "FAST_TRACK",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FAST_TRACK"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.recommended_action }}",
+                    "rightValue": "STANDARD_PROCESSING",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STANDARD"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "c3",
+                    "leftValue": "={{ $json.recommended_action }}",
+                    "rightValue": "MANUAL_REVIEW",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MANUAL_REVIEW"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "3. Route by Risk",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "decision", "value": "AUTO-APPROVED (fast track)", "type": "string" },
+            { "id": "s2", "name": "next_step", "value": "Pay claim within 24 hours. No human review needed.", "type": "string" }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "4a. Low Risk - Fast Track",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 140]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s3", "name": "decision", "value": "STANDARD PROCESSING", "type": "string" },
+            { "id": "s4", "name": "next_step", "value": "Add to the normal claims queue (3-5 working days).", "type": "string" }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "4b. Medium Risk - Standard",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s5", "name": "decision", "value": "MANUAL REVIEW REQUIRED", "type": "string" },
+            { "id": "s6", "name": "next_step", "value": "Assign to a senior claims officer. (Add a Gmail / Slack / Telegram node here to notify them.)", "type": "string" }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "4c. High Risk - Manual Review",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "5. Send Decision Back",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "1. Claim Webhook": {
+      "main": [[{ "node": "2. Call MotorAI API", "type": "main", "index": 0 }]]
+    },
+    "2. Call MotorAI API": {
+      "main": [[{ "node": "3. Route by Risk", "type": "main", "index": 0 }]]
+    },
+    "3. Route by Risk": {
+      "main": [
+        [{ "node": "4a. Low Risk - Fast Track", "type": "main", "index": 0 }],
+        [{ "node": "4b. Medium Risk - Standard", "type": "main", "index": 0 }],
+        [{ "node": "4c. High Risk - Manual Review", "type": "main", "index": 0 }]
+      ]
+    },
+    "4a. Low Risk - Fast Track": {
+      "main": [[{ "node": "5. Send Decision Back", "type": "main", "index": 0 }]]
+    },
+    "4b. Medium Risk - Standard": {
+      "main": [[{ "node": "5. Send Decision Back", "type": "main", "index": 0 }]]
+    },
+    "4c. High Risk - Manual Review": {
+      "main": [[{ "node": "5. Send Decision Back", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
